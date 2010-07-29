@@ -2,7 +2,7 @@ var net = require('net'),
     fs = require('fs'),
     crypto = require('crypto');
 
-var privateKey = fs.readFileSync('CA/newkey.pem', 'ascii');
+var privateKey = fs.readFileSync('CA/newkeyopen.pem', 'ascii');
 var certificate = fs.readFileSync('CA/newcert.pem', 'ascii');
 var certificateAuthority = fs.readFileSync('CA/demoCA/private/cakey.pem', 'ascii');
 var credentials = crypto.createCredentials({
@@ -17,8 +17,20 @@ var ParserStates = {
     BODY: 2,
 };
 
-function StompFrameBuffer() {
+function StompStreamHandler(stream) {
+    var frameBuffer = new StompFrameBuffer(this);
+    console.log('Secure Connection Established');
+    stream.on('data', function (data) {
+        frameBuffer.handleData(data);
+    });
+    stream.on('end', function () {
+        stream.end();
+    });
+};
+
+function StompFrameBuffer(streamHandler) {
     this.isAuthenticated = false;
+    this.streamHandler = streamHandler;
     this.state = ParserStates.COMMAND;
     this.request = new Request();
     this.frames = [];
@@ -37,47 +49,52 @@ StompFrameBuffer.prototype.incrementState = function() {
 StompFrameBuffer.prototype.handleData = function(data) {
     console.log('Handling Data');
     this.buffer += data;
-    if (this.state == ParserStates.COMMAND) {
-        this.parseCommand();
-    }
-    if (this.state == ParserStates.HEADERS) {
-        this.parseHeaders();
-    }
-    if (this.state == ParserStates.BODY) {
-        this.parseBody();
-    }
-    // TODO: Loop back if another command is in the buffer
+    do {
+        if (this.state == ParserStates.COMMAND) {
+            this.parseCommand();
+        }
+        if (this.state == ParserStates.HEADERS) {
+            this.parseHeaders();
+        }
+        if (this.state == ParserStates.BODY) {
+            this.parseBody();
+        }
+    } while (this.state == ParserStates.COMMAND && this.hasLine());
+};
+
+StompFrameBuffer.prototype.hasLine = function() {
+    return (this.buffer.indexOf('\n') > -1);
+};
+
+StompFrameBuffer.prototype.popLine = function () {
+    var index = this.buffer.indexOf('\n');
+    var line = this.buffer.slice(0, index);
+    this.buffer = this.buffer.substr(index + 1);
+    return line;
 };
 
 StompFrameBuffer.prototype.parseCommand = function() {
-    var index = this.buffer.indexOf('\n');
-    if (index > -1) {
-        this.request.setCommand(this.buffer.slice(0, index));
-        this.buffer = this.buffer.substr(index + 1);
-        this.incrementState();
+    while (this.hasLine()) {
+        var line = this.popLine();
+        // TODO: Make sure the line is a valid command
+        if (line != '') {
+            this.request.setCommand(line);
+            this.incrementState();
+            break;
+        }
     }
 };
 
 StompFrameBuffer.prototype.parseHeaders = function() {
-    while (true) {
-        var index = this.buffer.indexOf('\n');
-        if (index > -1) {
-            // TODO: If ':' isn't in this line we need to error out
-            var line = this.buffer.slice(0, index);
-            if (line == '') {
-                // Thats two newlines in a row, end of the headers detected
-                this.buffer = this.buffer.substr(1);
-                this.incrementState();
-                return;
-            }
-            else {
-                var kv = this.buffer.slice(0, index).split(':', 2);
-                this.request.setHeader(kv[0], kv[1]);
-                this.buffer = this.buffer.substr(index + 1);
-            }
+    while (this.hasLine()) {
+        var line = this.popLine();
+        if (line == '') {
+            this.incrementState();
+            break;
         }
         else {
-            break;
+            var kv = line.split(':', 2);
+            this.request.setHeader(kv[0], kv[1]);
         }
     }
 };
@@ -102,6 +119,7 @@ StompFrameBuffer.prototype.parseBody = function() {
     else {
         this.request.appendToBody(this.buffer.slice(0, index));
         console.log('Parsed Request: ' + this.request);
+        this.request = new Request();
         this.incrementState();
         this.buffer = this.buffer.substr(index + 1);
     }
@@ -151,14 +169,7 @@ var server = net.createServer(function (stream) {
         stream.setSecure(credentials);
     });
     stream.on('secure', function () {
-        var frameBuffer = new StompFrameBuffer();
-        console.log('Secure Connection Established');
-        stream.on('data', function (data) {
-            frameBuffer.handleData(data);
-        });
-        stream.on('end', function () {
-            stream.end();
-        });
+        new StompStreamHandler(stream);
     });
 });
 
