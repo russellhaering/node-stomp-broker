@@ -1,6 +1,8 @@
-var net = require('net'),
-    fs = require('fs'),
-    crypto = require('crypto');
+var net = require('net');
+var fs = require('fs');
+var crypto = require('crypto');
+var sys = require('sys');
+var events = require('events');
 
 var privateKey = fs.readFileSync('CA/newkeyopen.pem', 'ascii');
 var certificate = fs.readFileSync('CA/newcert.pem', 'ascii');
@@ -18,26 +20,45 @@ var ParserStates = {
 };
 
 function StompStreamHandler(stream) {
-    var frameBuffer = new StompFrameBuffer(this);
+    var frameEmitter = new StompFrameEmitter();
     console.log('Secure Connection Established');
     stream.on('data', function (data) {
-        frameBuffer.handleData(data);
+        frameEmitter.handleData(data);
     });
     stream.on('end', function () {
         stream.end();
     });
+    frameEmitter.on('request', function(request) {
+        console.log('Received Request: ' + request);
+        if (request.command == 'CONNECT') {
+            var response = new Request();
+            response.setCommand('CONNECTED');
+            response.setHeader('session', 'a');
+            response.send(stream);
+        }
+    });
+    frameEmitter.on('error', function(err) {
+        var response = new Request();
+        response.setCommand('ERROR');
+        response.setHeader('message', err['message']);
+        if ('details' in err) {
+            response.appendToBody(err['details']);
+        }
+        response.send(stream);
+    });
 };
 
-function StompFrameBuffer(streamHandler) {
-    this.isAuthenticated = false;
-    this.streamHandler = streamHandler;
+function StompFrameEmitter() {
+    events.EventEmitter.call(this);
     this.state = ParserStates.COMMAND;
     this.request = new Request();
     this.frames = [];
     this.buffer = '';
-}
+};
 
-StompFrameBuffer.prototype.incrementState = function() {
+sys.inherits(StompFrameEmitter, events.EventEmitter);
+
+StompFrameEmitter.prototype.incrementState = function() {
     if (this.state == ParserStates.BODY){
         this.state = ParserStates.COMMAND;
     }
@@ -46,7 +67,7 @@ StompFrameBuffer.prototype.incrementState = function() {
     }
 };
 
-StompFrameBuffer.prototype.handleData = function(data) {
+StompFrameEmitter.prototype.handleData = function(data) {
     console.log('Handling Data');
     this.buffer += data;
     do {
@@ -62,18 +83,18 @@ StompFrameBuffer.prototype.handleData = function(data) {
     } while (this.state == ParserStates.COMMAND && this.hasLine());
 };
 
-StompFrameBuffer.prototype.hasLine = function() {
+StompFrameEmitter.prototype.hasLine = function() {
     return (this.buffer.indexOf('\n') > -1);
 };
 
-StompFrameBuffer.prototype.popLine = function () {
+StompFrameEmitter.prototype.popLine = function () {
     var index = this.buffer.indexOf('\n');
     var line = this.buffer.slice(0, index);
     this.buffer = this.buffer.substr(index + 1);
     return line;
 };
 
-StompFrameBuffer.prototype.parseCommand = function() {
+StompFrameEmitter.prototype.parseCommand = function() {
     while (this.hasLine()) {
         var line = this.popLine();
         // TODO: Make sure the line is a valid command
@@ -85,7 +106,7 @@ StompFrameBuffer.prototype.parseCommand = function() {
     }
 };
 
-StompFrameBuffer.prototype.parseHeaders = function() {
+StompFrameEmitter.prototype.parseHeaders = function() {
     while (this.hasLine()) {
         var line = this.popLine();
         if (line == '') {
@@ -99,7 +120,7 @@ StompFrameBuffer.prototype.parseHeaders = function() {
     }
 };
 
-StompFrameBuffer.prototype.parseBody = function() {
+StompFrameEmitter.prototype.parseBody = function() {
     if (this.request.contentLength > -1) {
         var remainingLength = this.request.contentLength - this.request.body.length;
         this.request.appendToBody(this.buffer.slice(0, remainingLength));
@@ -117,8 +138,10 @@ StompFrameBuffer.prototype.parseBody = function() {
        this.buffer = '';
     }
     else {
+        // The end of the request has been identified, finish creating it
         this.request.appendToBody(this.buffer.slice(0, index));
-        console.log('Parsed Request: ' + this.request);
+        // Emit the request and reset
+        this.emit('request', this.request);
         this.request = new Request();
         this.incrementState();
         this.buffer = this.buffer.substr(index + 1);
@@ -138,6 +161,21 @@ Request.prototype.toString = function() {
         headers: this.headers,
         body: this.body,
     });
+};
+
+Request.prototype.send = function(stream) {
+    stream.write(this.command + '\n');
+    for (var key in this.headers) {
+        stream.write(key + ':' + this.headers[key] + '\n');
+    }
+    if (this.body.length > 0) {
+        stream.write('content-length:' + this.body.length + '\n');
+    }
+    stream.write('\n');
+    if (this.body.length > 0) {
+        stream.write(this.body);
+    }
+    stream.write('\0');
 };
 
 Request.prototype.setCommand = function(command) {
@@ -163,14 +201,39 @@ function QueueManager() {
     this.queues = {};
 }
 
-var server = net.createServer(function (stream) {
-    stream.on('connect', function () {
-        console.log('Received Connection, securing');
-        stream.setSecure(credentials);
+function StompServer(port) {
+    this.port = port;
+    this.server = net.createServer(function(stream) {
+        stream.on('connect', function() {
+            console.log('Received Unsecured Connection');
+            new StompStreamHandler(stream);
+        });
     });
-    stream.on('secure', function () {
-        new StompStreamHandler(stream);
-    });
-});
+}
 
-server.listen(8124, 'localhost');
+function SecureStompServer(port) {
+    StompServer.call(this);
+    this.port = port;
+    this.server = net.createServer(function (stream) {
+        stream.on('connect', function () {
+            console.log('Received Connection, securing');
+            stream.setSecure(credentials);
+        });
+        stream.on('secure', function () {
+            new StompStreamHandler(stream);
+        });
+    });
+}
+
+sys.inherits(SecureStompServer, StompServer);
+
+StompServer.prototype.listen = function() {
+    this.server.listen(this.port, 'localhost');
+};
+
+StompServer.prototype.stop = function(port) {
+    this.server.close();
+};
+
+new SecureStompServer(8124).listen();
+new StompServer(8125).listen();
