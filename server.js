@@ -17,7 +17,20 @@ var ParserStates = {
     COMMAND: 0,
     HEADERS: 1,
     BODY: 2,
+    ERROR: 3,
 };
+
+var StompClientCommands = [
+    'CONNECT',
+    'SEND',
+    'SUBSCRIBE',
+    'UNSUBSCRIBE',
+    'BEGIN',
+    'COMMIT',
+    'ACK',
+    'ABORT',
+    'DISCONNECT',
+];
 
 function StompStreamHandler(stream) {
     var frameEmitter = new StompFrameEmitter();
@@ -59,7 +72,7 @@ function StompFrameEmitter() {
 sys.inherits(StompFrameEmitter, events.EventEmitter);
 
 StompFrameEmitter.prototype.incrementState = function() {
-    if (this.state == ParserStates.BODY){
+    if (this.state == ParserStates.BODY || this.state == ParserStates.ERROR){
         this.state = ParserStates.COMMAND;
     }
     else {
@@ -68,7 +81,6 @@ StompFrameEmitter.prototype.incrementState = function() {
 };
 
 StompFrameEmitter.prototype.handleData = function(data) {
-    console.log('Handling Data');
     this.buffer += data;
     do {
         if (this.state == ParserStates.COMMAND) {
@@ -79,6 +91,9 @@ StompFrameEmitter.prototype.handleData = function(data) {
         }
         if (this.state == ParserStates.BODY) {
             this.parseBody();
+        }
+        if (this.state == ParserStates.ERROR) {
+            this.parseError();
         }
     } while (this.state == ParserStates.COMMAND && this.hasLine());
 };
@@ -94,11 +109,22 @@ StompFrameEmitter.prototype.popLine = function () {
     return line;
 };
 
+StompFrameEmitter.prototype.error = function (err) {
+    this.emit('error', err);
+    this.state = ParserStates.ERROR;
+};
+
 StompFrameEmitter.prototype.parseCommand = function() {
     while (this.hasLine()) {
         var line = this.popLine();
-        // TODO: Make sure the line is a valid command
         if (line != '') {
+            if (StompClientCommands.indexOf(line) == -1) {
+                this.error({
+                    message: 'No such command',
+                    details: 'Unrecognized Command \'' + line + '\'',
+                });
+                break;
+            }
             this.request.setCommand(line);
             this.incrementState();
             break;
@@ -115,6 +141,13 @@ StompFrameEmitter.prototype.parseHeaders = function() {
         }
         else {
             var kv = line.split(':', 2);
+            if (kv.length != 2) {
+                this.error({
+                    message: 'Error parsing header',
+                    details: 'No ":" in line "' + line + '"',
+                });
+                break;
+            }
             this.request.setHeader(kv[0], kv[1]);
         }
     }
@@ -145,6 +178,17 @@ StompFrameEmitter.prototype.parseBody = function() {
         this.request = new Request();
         this.incrementState();
         this.buffer = this.buffer.substr(index + 1);
+    }
+};
+
+StompFrameEmitter.prototype.parseError = function () {
+    var index = this.buffer.indexOf('\0');
+    if (index > -1) {
+        this.buffer = this.buffer.substr(index + 1);
+        this.incrementState();
+    }
+    else {
+        this.buffer = "";
     }
 };
 
@@ -211,7 +255,7 @@ function StompServer(port) {
     });
 }
 
-function SecureStompServer(port) {
+function SecureStompServer(port, credentials) {
     StompServer.call(this);
     this.port = port;
     this.server = net.createServer(function (stream) {
@@ -235,5 +279,5 @@ StompServer.prototype.stop = function(port) {
     this.server.close();
 };
 
-new SecureStompServer(8124).listen();
+new SecureStompServer(8124, credentials).listen();
 new StompServer(8125).listen();
