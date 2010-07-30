@@ -1,0 +1,146 @@
+var sys = require('sys');
+var events = require('events');
+var StompRequest = require('./request').StompRequest;
+
+var ParserStates = {
+    COMMAND: 0,
+    HEADERS: 1,
+    BODY: 2,
+    ERROR: 3,
+};
+
+function StompFrameEmitter(commands) {
+    events.EventEmitter.call(this);
+    this.state = ParserStates.COMMAND;
+    this.request = new StompRequest();
+    this.frames = [];
+    this.buffer = '';
+    this.commands = commands;
+};
+
+sys.inherits(StompFrameEmitter, events.EventEmitter);
+
+StompFrameEmitter.prototype.incrementState = function() {
+    if (this.state == ParserStates.BODY || this.state == ParserStates.ERROR){
+        this.state = ParserStates.COMMAND;
+    }
+    else {
+        this.state++;
+    }
+};
+
+StompFrameEmitter.prototype.handleData = function(data) {
+    this.buffer += data;
+    do {
+        if (this.state == ParserStates.COMMAND) {
+            this.parseCommand();
+        }
+        if (this.state == ParserStates.HEADERS) {
+            this.parseHeaders();
+        }
+        if (this.state == ParserStates.BODY) {
+            this.parseBody();
+        }
+        if (this.state == ParserStates.ERROR) {
+            this.parseError();
+        }
+    } while (this.state == ParserStates.COMMAND && this.hasLine());
+};
+
+StompFrameEmitter.prototype.hasLine = function() {
+    return (this.buffer.indexOf('\n') > -1);
+};
+
+StompFrameEmitter.prototype.popLine = function () {
+    var index = this.buffer.indexOf('\n');
+    var line = this.buffer.slice(0, index);
+    this.buffer = this.buffer.substr(index + 1);
+    return line;
+};
+
+StompFrameEmitter.prototype.error = function (err) {
+    this.emit('error', err);
+    this.state = ParserStates.ERROR;
+};
+
+StompFrameEmitter.prototype.parseCommand = function() {
+    while (this.hasLine()) {
+        var line = this.popLine();
+        if (line != '') {
+            if (this.commands.indexOf(line) == -1) {
+                this.error({
+                    message: 'No such command',
+                    details: 'Unrecognized Command \'' + line + '\'',
+                });
+                break;
+            }
+            this.request.setCommand(line);
+            this.incrementState();
+            break;
+        }
+    }
+};
+
+StompFrameEmitter.prototype.parseHeaders = function() {
+    while (this.hasLine()) {
+        var line = this.popLine();
+        if (line == '') {
+            this.incrementState();
+            break;
+        }
+        else {
+            var kv = line.split(':', 2);
+            if (kv.length != 2) {
+                this.error({
+                    message: 'Error parsing header',
+                    details: 'No ":" in line "' + line + '"',
+                });
+                break;
+            }
+            this.request.setHeader(kv[0], kv[1]);
+        }
+    }
+};
+
+StompFrameEmitter.prototype.parseBody = function() {
+    if (this.request.contentLength > -1) {
+        var remainingLength = this.request.contentLength - this.request.body.length;
+        this.request.appendToBody(this.buffer.slice(0, remainingLength));
+        this.buffer = this.buffer.substr(remainingLength);
+        if (this.request.contentLength == this.request.body.length) {
+            this.request.contentLength = -1;
+        }
+        else {
+            return;
+        }
+    }
+    var index = this.buffer.indexOf('\0');
+    if (index == -1) {
+       this.request.appendToBody(this.buffer);
+       this.buffer = '';
+    }
+    else {
+        // The end of the request has been identified, finish creating it
+        this.request.appendToBody(this.buffer.slice(0, index));
+        // Emit the request and reset
+        this.emit('request', this.request);
+        this.request = new StompRequest();
+        this.incrementState();
+        this.buffer = this.buffer.substr(index + 1);
+    }
+};
+
+StompFrameEmitter.prototype.parseError = function () {
+    var index = this.buffer.indexOf('\0');
+    if (index > -1) {
+        this.buffer = this.buffer.substr(index + 1);
+        this.incrementState();
+    }
+    else {
+        this.buffer = "";
+    }
+};
+
+new StompFrameEmitter();
+
+exports.StompFrameEmitter = StompFrameEmitter;
