@@ -2,7 +2,7 @@ var net = require('net');
 var fs = require('fs');
 var sys = require('sys');
 var crypto = require('crypto');
-var StompRequest = require('./request').StompRequest;
+var StompFrame = require('./frame').StompFrame;
 var StompFrameEmitter = require('./parser').StompFrameEmitter;
 
 var privateKey = fs.readFileSync('CA/newkeyopen.pem', 'ascii');
@@ -28,7 +28,6 @@ var StompClientCommands = [
 
 function StompStreamHandler(stream) {
     var frameEmitter = new StompFrameEmitter(StompClientCommands);
-    console.log('Secure Connection Established');
 
     stream.on('data', function (data) {
         frameEmitter.handleData(data);
@@ -38,18 +37,20 @@ function StompStreamHandler(stream) {
         stream.end();
     });
 
-    frameEmitter.on('request', function(request) {
-        console.log('Received Request: ' + request);
-        if (request.command == 'CONNECT') {
-            var response = new StompRequest();
-            response.setCommand('CONNECTED');
-            response.setHeader('session', 'a');
-            response.send(stream);
+    frameEmitter.on('frame', function(frame) {
+        console.log('Received Frame: ' + frame);
+        if (frame.command == 'CONNECT') {
+            new StompFrame({
+                command: 'CONNECTED',
+                headers: {
+                    session: '0',
+                }
+            }).send(stream);
         }
     });
 
     frameEmitter.on('error', function(err) {
-        var response = new StompRequest();
+        var response = new StompFrame();
         response.setCommand('ERROR');
         response.setHeader('message', err['message']);
         if ('details' in err) {

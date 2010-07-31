@@ -1,6 +1,6 @@
 var sys = require('sys');
 var events = require('events');
-var StompRequest = require('./request').StompRequest;
+var StompFrame = require('./frame').StompFrame;
 
 var ParserStates = {
     COMMAND: 0,
@@ -12,7 +12,7 @@ var ParserStates = {
 function StompFrameEmitter(commands) {
     events.EventEmitter.call(this);
     this.state = ParserStates.COMMAND;
-    this.request = new StompRequest();
+    this.frame = new StompFrame();
     this.frames = [];
     this.buffer = '';
     this.commands = commands;
@@ -74,7 +74,7 @@ StompFrameEmitter.prototype.parseCommand = function() {
                 });
                 break;
             }
-            this.request.setCommand(line);
+            this.frame.setCommand(line);
             this.incrementState();
             break;
         }
@@ -97,18 +97,18 @@ StompFrameEmitter.prototype.parseHeaders = function() {
                 });
                 break;
             }
-            this.request.setHeader(kv[0], kv[1]);
+            this.frame.setHeader(kv[0], kv[1]);
         }
     }
 };
 
 StompFrameEmitter.prototype.parseBody = function() {
-    if (this.request.contentLength > -1) {
-        var remainingLength = this.request.contentLength - this.request.body.length;
-        this.request.appendToBody(this.buffer.slice(0, remainingLength));
+    if (this.frame.contentLength > -1) {
+        var remainingLength = this.frame.contentLength - this.frame.body.length;
+        this.frame.appendToBody(this.buffer.slice(0, remainingLength));
         this.buffer = this.buffer.substr(remainingLength);
-        if (this.request.contentLength == this.request.body.length) {
-            this.request.contentLength = -1;
+        if (this.frame.contentLength == this.frame.body.length) {
+            this.frame.contentLength = -1;
         }
         else {
             return;
@@ -116,15 +116,15 @@ StompFrameEmitter.prototype.parseBody = function() {
     }
     var index = this.buffer.indexOf('\0');
     if (index == -1) {
-       this.request.appendToBody(this.buffer);
+       this.frame.appendToBody(this.buffer);
        this.buffer = '';
     }
     else {
-        // The end of the request has been identified, finish creating it
-        this.request.appendToBody(this.buffer.slice(0, index));
-        // Emit the request and reset
-        this.emit('request', this.request);
-        this.request = new StompRequest();
+        // The end of the frame has been identified, finish creating it
+        this.frame.appendToBody(this.buffer.slice(0, index));
+        // Emit the frame and reset
+        this.emit('frame', this.frame);
+        this.frame = new StompFrame();
         this.incrementState();
         this.buffer = this.buffer.substr(index + 1);
     }
