@@ -26,7 +26,46 @@ var StompClientCommands = [
     'DISCONNECT',
 ];
 
-function StompStreamHandler(stream) {
+function StompQueueManager() {
+    this.queues = {};
+    this.currentId = 0;
+};
+
+StompQueueManager.prototype.generateMessageId = function() {
+    return this.currentId++;
+};
+
+StompQueueManager.prototype.subscribe = function(queue, stream) {
+    if (!(queue in this.queues)) {
+        this.queues[queue] = [];
+    }
+    this.queues[queue].push(stream);
+};
+
+StompQueueManager.prototype.publish = function(queue, message) {
+    if (!(queue in this.queues)) {
+        throw new StompFrame({
+            command: 'ERROR',
+            headers: {
+                message: 'Queue does not exist',
+            },
+            body: 'Queue "' + frame.headers.destination + '" does not exist',
+        });
+     }
+     var message = new StompFrame({
+        command: 'MESSAGE',
+        headers: {
+            'destination': queue,
+            'message-id': this.generateMessageId(),
+        },
+        body: message,
+     });
+     this.queues[queue].map(function(destination) {
+        message.send(destination);
+     });
+};
+
+function StompStreamHandler(stream, queueManager) {
     var frameEmitter = new StompFrameEmitter(StompClientCommands);
 
     stream.on('data', function (data) {
@@ -47,6 +86,17 @@ function StompStreamHandler(stream) {
                 }
             }).send(stream);
         }
+        if (frame.command == 'SUBSCRIBE') {
+            queueManager.subscribe(frame.headers.destination, stream);
+        }
+        if (frame.command == 'SEND') {
+            try {
+                queueManager.publish(frame.headers.destination, frame.body);
+            }
+            catch (e) {
+                e.send(stream);
+            }
+        }
     });
 
     frameEmitter.on('error', function(err) {
@@ -62,16 +112,18 @@ function StompStreamHandler(stream) {
 
 function StompServer(port) {
     this.port = port;
+    var queueManager = new StompQueueManager();
     this.server = net.createServer(function(stream) {
         stream.on('connect', function() {
             console.log('Received Unsecured Connection');
-            new StompStreamHandler(stream);
+            new StompStreamHandler(stream, queueManager);
         });
     });
 }
 
 function SecureStompServer(port, credentials) {
     StompServer.call(this);
+    var queueManager = new StompQueueManager();
     this.port = port;
     this.server = net.createServer(function (stream) {
         stream.on('connect', function () {
@@ -79,7 +131,7 @@ function SecureStompServer(port, credentials) {
             stream.setSecure(credentials);
         });
         stream.on('secure', function () {
-            new StompStreamHandler(stream);
+            new StompStreamHandler(stream, queueManager);
         });
     });
 }
