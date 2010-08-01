@@ -37,7 +37,7 @@ StompClient.prototype.onConnect = function() {
     });
 
     self.stream.on('end', function () {
-        stream.end();
+        self.stream.end();
         self.emit('disconnect');
     });
 
