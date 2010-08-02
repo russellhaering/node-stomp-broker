@@ -1,33 +1,10 @@
 function StompFrame(frame) {
     if (frame == undefined) {
-        frame = {}
+        frame = {};
     }
-
-    // Set Command
-    if ('command' in frame) {
-        this.command = frame.command;
-    }
-    else { 
-        this.command = '';
-    }
-
-    // Set Headers
-    if ('headers' in frame) {
-        this.headers = frame.headers;
-    }
-    else {
-        this.headers = {};
-    }
-    
-    // Set Body
-    if ('body' in frame) {
-        this.body = frame.body;
-    }
-    else {
-        this.body = '';
-    }
-
-    // The integer value of the content-length header.
+    this.command = frame.command || '';
+    this.headers = frame.headers || {};
+    this.body = frame.body || '';
     this.contentLength = -1;
 };
 
