@@ -7,21 +7,22 @@ var StompClient = require('../lib/client').StompClient;
 
 //mockage
 var net = require('net');
-var StompFrame = require('../lib/frame').StompFrame;
-
-var assertBack = function() {};
-
-// Override StompFrame send function to allow inspection of frame data inside a test
-StompFrame.prototype.send = function(stream) {
-  assertBack(this);
-};
-
-// Mock net object so we never try to send any real data
-var connectionObserver = new Events();
 
 net.createConnection = function() {
   return connectionObserver;
 };
+
+var StompFrame = require('../lib/frame').StompFrame;
+
+// Override StompFrame send function to allow inspection of frame data inside a test
+StompFrame.prototype.send = function(stream) {
+  sendHook(this);
+};
+
+var sendHook = function() {};
+
+// Mock net object so we never try to send any real data
+var connectionObserver = new Events();
 
 connectionObserver.write = function(data) {
     //Supress writes
@@ -37,7 +38,7 @@ module.exports = testCase({
   tearDown: function(callback) {
     delete this.stompClient;
     connectionObserver = new Events();
-    assertBack = function() {};
+    sendHook = function() {};
     callback();
   },
 
@@ -53,10 +54,8 @@ module.exports = testCase({
     test.done();
   },
 
-
-
   'check CONNECT StompFrame is correctly formed': function(test) {
-    assertBack = function(stompFrame) {
+    sendHook = function(stompFrame) {
       test.equal(stompFrame.command, 'CONNECT');
       test.deepEqual(stompFrame.headers, {
           login: 'user',
@@ -76,23 +75,46 @@ module.exports = testCase({
   'check inbound CONNECTED frame parses correctly': function(test) {
     var self = this;
     var testId = '1234';
-    assertBack = function() {
+    sendHook = function() {
       self.stompClient.stream.emit('data', 'CONNECTED\nsession:' + testId + '\n\n\0');
     };
 
     this.stompClient._stompFrameEmitter.on('CONNECTED', function (stompFrame) {
+      test.equal(stompFrame.command, 'CONNECTED');
       test.equal(testId, stompFrame.headers.session);
       test.done();
     });
-
 
     //start the test
     this.stompClient.connect();
     connectionObserver.emit('connect');
   },
 
-  '': function(test) {
-    test.done();
+  'check SUBSCRIBE StompFrame is correctly formed': function(test) {
+    var self = this;
+    var testId = '1234';
+    var destination = '/queue/someQueue';
+    
+    //mock that we recieved a CONNECTED from the stomp server in our send hook
+    sendHook = function(stompFrame) {
+      self.stompClient.stream.emit('data', 'CONNECTED\nsession:' + testId + '\n\n\0');
+    };
+
+    this.stompClient._stompFrameEmitter.on('CONNECTED', function (stompFrame) {
+      //override the sendHook so we can test the latest stompframe to be sent
+      sendHook = function(stompFrame) {
+        test.equal(stompFrame.command, 'SUBSCRIBE');
+        test.equal(stompFrame.headers.destination, destination);
+        test.done();
+      };
+
+      self.stompClient.subscribe(destination, function(){
+        // this callback never gets called unless the client recieves some data down the subscription
+      });
+    });
+
+    this.stompClient.connect();
+    connectionObserver.emit('connect');
   }
 
 
