@@ -115,7 +115,35 @@ module.exports = testCase({
 
     this.stompClient.connect();
     connectionObserver.emit('connect');
-  }
+  },
 
+  'check the SUBSCRIBE callback fires when we recieve data down the destination': function(test) {
+    var self = this;
+    var testId = '1234';
+    var destination = '/queue/someQueue';
+    var messageId = 1;
+    var messageToBeSent = 'oh herrow!';
+    
+    //mock that we recieved a CONNECTED from the stomp server in our send hook
+    sendHook = function(stompFrame) {
+      self.stompClient.stream.emit('data', 'CONNECTED\nsession:' + testId + '\n\n\0');
+    };
+
+    this.stompClient._stompFrameEmitter.on('CONNECTED', function (stompFrame) {
+      console.log('connected');
+      //mock a MESSAGE being recieved on the tcp that matches the destination of the subscribed client
+      sendHook = function(stompFrame) {
+        self.stompClient.stream.emit('data', 'MESSAGE\ndestination:' + destination + '\nmessage-id:' + messageId + '\n\n' + messageToBeSent + '\0');
+      };
+
+      self.stompClient.subscribe(destination, function(data){
+        test.equal(data, messageToBeSent);
+        test.done();
+      });
+    });
+
+    this.stompClient.connect();
+    connectionObserver.emit('connect');
+  }
 
 });
