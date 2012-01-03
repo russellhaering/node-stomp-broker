@@ -16,7 +16,10 @@ var StompFrame = require('../lib/frame').StompFrame;
 
 // Override StompFrame send function to allow inspection of frame data inside a test
 StompFrame.prototype.send = function(stream) {
-  sendHook(this);
+  var self = this;
+  process.nextTick(function () {
+    sendHook(self);
+  });
 };
 
 var sendHook = function() {};
@@ -86,7 +89,7 @@ module.exports = testCase({
     });
 
     //start the test
-    this.stompClient.connect();
+    this.stompClient.connect(function() {});
     connectionObserver.emit('connect');
   },
 
@@ -113,10 +116,10 @@ module.exports = testCase({
       });
     });
 
-    this.stompClient.connect();
+    this.stompClient.connect(function() {});
     connectionObserver.emit('connect');
   },
-
+  
   'check the SUBSCRIBE callback fires when we recieve data down the destination': function(test) {
     var self = this;
     var testId = '1234';
@@ -129,9 +132,7 @@ module.exports = testCase({
       self.stompClient.stream.emit('data', 'CONNECTED\nsession:' + testId + '\n\n\0');
     };
 
-    this.stompClient._stompFrameEmitter.on('CONNECTED', function (stompFrame) {
-      console.log('connected');
-      //mock a MESSAGE being recieved on the tcp that matches the destination of the subscribed client
+    this.stompClient.connect(function() {
       sendHook = function(stompFrame) {
         self.stompClient.stream.emit('data', 'MESSAGE\ndestination:' + destination + '\nmessage-id:' + messageId + '\n\n' + messageToBeSent + '\0');
       };
@@ -140,9 +141,8 @@ module.exports = testCase({
         test.equal(data, messageToBeSent);
         test.done();
       });
+        
     });
-
-    this.stompClient.connect();
     connectionObserver.emit('connect');
   }
 
