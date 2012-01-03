@@ -12,6 +12,15 @@ stompClient.connect(function() {
   });
 
   setTimeout(function(){
-    stompClient.publish('/queue/thing', 'herrow!');
+    stompClient.publish('/queue/thing', 'oh herrow!');
   }, 1000);
+  setTimeout(function(){
+    stompClient.publish('/queue/thing', 'wonely...');
+  }, 2000);
+  setTimeout(function(){
+    stompClient.publish('/queue/thing', 'so wonely...');
+  }, 3000);
+  setTimeout(function(){
+    stompClient.publish('/queue/thing', 'so wonely, so wonely and bwue!');
+  }, 4000);
 });
