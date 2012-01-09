@@ -5,6 +5,9 @@ var sys = require('sys'),
 
 var StompClient = require('../lib/client').StompClient;
 
+// Suppress console logging
+var log = function (msg) {};
+
 //mockage
 var net = require('net');
 
@@ -57,7 +60,10 @@ module.exports = testCase({
     test.done();
   },
 
-  'check CONNECT StompFrame is correctly formed': function(test) {
+  'check outbound CONNECT frame correctly follows protocol specification': function(test) {
+
+    test.expect(4);
+
     sendHook = function(stompFrame) {
       test.equal(stompFrame.command, 'CONNECT');
       test.deepEqual(stompFrame.headers, {
@@ -78,6 +84,9 @@ module.exports = testCase({
   'check inbound CONNECTED frame parses correctly': function(test) {
     var self = this;
     var testId = '1234';
+
+    test.expect(2);
+
     sendHook = function() {
       self.stompClient.stream.emit('data', 'CONNECTED\nsession:' + testId + '\n\n\0');
     };
@@ -93,16 +102,19 @@ module.exports = testCase({
     connectionObserver.emit('connect');
   },
 
-  'check SUBSCRIBE StompFrame is correctly formed': function(test) {
+  'check outbound SUBSCRIBE frame correctly follows protocol specification': function(test) {
     var self = this;
     var testId = '1234';
     var destination = '/queue/someQueue';
     
-    //mock that we recieved a CONNECTED from the stomp server in our send hook
+    test.expect(2);
+
+    //mock that we received a CONNECTED from the stomp server in our send hook
     sendHook = function(stompFrame) {
       self.stompClient.stream.emit('data', 'CONNECTED\nsession:' + testId + '\n\n\0');
     };
 
+    // Once connected - subscribe to a fake queue
     this.stompClient._stompFrameEmitter.on('CONNECTED', function (stompFrame) {
       //override the sendHook so we can test the latest stompframe to be sent
       sendHook = function(stompFrame) {
@@ -113,6 +125,7 @@ module.exports = testCase({
 
       self.stompClient.subscribe(destination, function(){
         // this callback never gets called unless the client recieves some data down the subscription
+        // the point of this test is to ensure the SUBSCRIBE frame is correctly structured
       });
     });
 
@@ -120,30 +133,96 @@ module.exports = testCase({
     connectionObserver.emit('connect');
   },
   
-  'check the SUBSCRIBE callback fires when we recieve data down the destination': function(test) {
+  'check the SUBSCRIBE callback fires when we receive data down the destination queue': function(test) {
     var self = this;
     var testId = '1234';
     var destination = '/queue/someQueue';
     var messageId = 1;
     var messageToBeSent = 'oh herrow!';
     
-    //mock that we recieved a CONNECTED from the stomp server in our send hook
+    test.expect(3);
+
+    //mock that we received a CONNECTED from the stomp server in our send hook
     sendHook = function(stompFrame) {
       self.stompClient.stream.emit('data', 'CONNECTED\nsession:' + testId + '\n\n\0');
     };
 
     this.stompClient.connect(function() {
-      sendHook = function(stompFrame) {
+
+      // Mock inbound MESSAGE frame
+      sendHook = function (stompFrame) {
         self.stompClient.stream.emit('data', 'MESSAGE\ndestination:' + destination + '\nmessage-id:' + messageId + '\n\n' + messageToBeSent + '\0');
       };
 
-      self.stompClient.subscribe(destination, function(data){
-        test.equal(data, messageToBeSent);
+      // Subscribe to a queue, and upon receipt of message (wired above) test that body/headers correctly propogate to callback
+      self.stompClient.subscribe(destination, function (body, headers) {
+        test.equal(body, messageToBeSent, 'Received message matches the sent one');
+        test.equal(headers['message-id'], messageId);
+        test.equal(headers.destination, destination);
         test.done();
       });
         
     });
+
     connectionObserver.emit('connect');
+  },
+
+  'check outbound UNSUBSCRIBE frame correctly follows protocol specification': function (test) {
+    this.stompClient.connect(function() {
+      
+      // self.stomp
+
+    });
+    test.done();
+  },
+
+  'check outbound SEND frame correctly follows protocol specification': function (test) {
+    var self = this;
+    var testId = '1234';
+    var destination = '/queue/someQueue';
+    var messageToBeSent = 'oh herrow!';
+
+    test.expect(3);
+
+    //mock that we received a CONNECTED from the stomp server in our send hook
+    sendHook = function (stompFrame) {
+      self.stompClient.stream.emit('data', 'CONNECTED\nsession:' + testId + '\n\n\0');
+    };
+
+    this.stompClient.connect(function() {
+
+      sendHook = function(stompFrame) {
+        test.equal(stompFrame.command, 'SEND');
+        test.deepEqual(stompFrame.headers, { destination: destination });
+        test.equal(stompFrame.body, messageToBeSent);
+        test.done();
+      };
+
+      self.stompClient.publish(destination, messageToBeSent);
+
+    });
+
+    connectionObserver.emit('connect');
+  },
+
+  'check parseError event fires when malformed frame is received': function(test) {
+    var self = this;
+
+    test.expect(1);
+
+    //mock that we received a CONNECTED from the stomp server in our send hook
+    sendHook = function (stompFrame) {
+      self.stompClient.stream.emit('data', 'CONNECTED\n\n\n\0');
+    };
+
+    this.stompClient._stompFrameEmitter.on('parseError', function (err) {
+      test.equal(err.message, 'Header "session" is required, and missing from {"command":"CONNECTED","headers":{},"body":"\\n"}');
+      test.done();
+    });
+
+    this.stompClient.connect(function() {});
+    connectionObserver.emit('connect');
+    
   }
 
 });
