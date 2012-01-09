@@ -216,7 +216,7 @@ module.exports = testCase({
     };
 
     this.stompClient._stompFrameEmitter.on('parseError', function (err) {
-      test.equal(err.message, 'Header "session" is required, and missing from {"command":"CONNECTED","headers":{},"body":"\\n"}');
+      test.equal(err.message, 'Header "session" is required, and missing from frame: {"command":"CONNECTED","headers":{},"body":"\\n"}');
       test.done();
     });
 
