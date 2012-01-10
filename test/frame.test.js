@@ -1,4 +1,4 @@
-var sys = require('sys'),
+var util = require('util'),
     Events = require('events').EventEmitter,
     nodeunit  = require('nodeunit'),
     testCase  = require('nodeunit').testCase,
@@ -8,7 +8,7 @@ var sys = require('sys'),
 var connectionObserver = new Events();
 connectionObserver.writeBuffer = [];
 connectionObserver.write = function(data) {
-    this.writeBuffer.push(data);
+  this.writeBuffer.push(data);
 };
 
 module.exports = testCase({
@@ -75,6 +75,8 @@ module.exports = testCase({
       '\u0000'
     ];
 
+
+
     frame.send(connectionObserver);
 
     test.deepEqual(expectedStream, connectionObserver.writeBuffer, 'frame stream data is correctly output on the mocked wire');
@@ -82,26 +84,31 @@ module.exports = testCase({
   },
 
   'check validation of arbitrary frame with arbitrary frame construct': function (test) {
-    var frameConstruct = {
-      'headers': {
-        'blah': { required: true },
-        'regexheader': { required: true, regex: /(wibble|wobble)/ }
-      }
-    };
+    var validation,
+        frameConstruct = {
+          'headers': {
+            'blah': { required: true },
+            'regexheader': { required: true, regex: /(wibble|wobble)/ }
+          }
+        };
 
     var frame = new StompFrame({
       'command': 'COMMAND',
-      'headers': {
-        'blah': 'valueExists',
-        'regexheader': 'not what it should be'
-      },
+      'headers': {},
       'body': ''
     });
 
-    var validation = frame.validate(frameConstruct);
-
+    // Invalid header (required)
+    validation = frame.validate(frameConstruct);
     test.equal(validation.isValid, false);
-    test.equal(validation.message, 'Header "regexheader" has value "not what it should be" which does not match against the following regex: /(wibble|wobble)/ (Frame: {"command":"COMMAND","headers":{"blah":"valueExists","regexheader":"not what it should be"},"body":""})');
+    test.equal(validation.message, 'Header "blah" is required, and missing from frame: {"command":"COMMAND","headers":{},"body":""}');
+    frame.setHeader('blah', 'something or other');  // Set it now so it doesn't complain in later tests
+
+    // Invalid header (regex)
+    frame.setHeader('regexheader', 'not what it should be');
+    validation = frame.validate(frameConstruct);
+    test.equal(validation.isValid, false);
+    test.equal(validation.message, 'Header "regexheader" has value "not what it should be" which does not match against the following regex: /(wibble|wobble)/ (Frame: {"command":"COMMAND","headers":{"blah":"something or other","regexheader":"not what it should be"},"body":""})');
 
     // Now make the header valid
     frame.setHeader('regexheader', 'wibble');

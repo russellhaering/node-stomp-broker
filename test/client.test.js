@@ -1,14 +1,15 @@
-var sys = require('sys'),
+var util = require('util'),
     Events = require('events').EventEmitter,
     nodeunit  = require('nodeunit'),
     testCase  = require('nodeunit').testCase;
 
 var StompClient = require('../lib/client').StompClient;
+var connectionObserver;
 
-// Suppress console logging
-var log = function (msg) {};
+// surpress logs for the test
+util.log = function() {};
 
-//mockage
+// net mockage
 var net = require('net');
 
 net.createConnection = function() {
@@ -18,33 +19,31 @@ net.createConnection = function() {
 var StompFrame = require('../lib/frame').StompFrame;
 
 // Override StompFrame send function to allow inspection of frame data inside a test
-StompFrame.prototype.send = function(stream) {
-  var self = this;
-  process.nextTick(function () {
-    sendHook(self);
-  });
-};
-
+var oldSend;
 var sendHook = function() {};
-
-// Mock net object so we never try to send any real data
-var connectionObserver = new Events();
-
-connectionObserver.write = function(data) {
-    //Supress writes
-};
 
 module.exports = testCase({
 
   setUp: function(callback) {
+    // Mock net object so we never try to send any real data
+    connectionObserver = new Events();
     this.stompClient = new StompClient('127.0.0.1', 2098, 'user', 'pass', '1.0');
+
+    oldSend = StompFrame.prototype.send;
+    StompFrame.prototype.send = function(stream) {
+      var self = this;
+      process.nextTick(function () {
+        sendHook(self);
+      });
+    };
+
     callback();
   },
   
   tearDown: function(callback) {
     delete this.stompClient;
-    connectionObserver = new Events();
     sendHook = function() {};
+    StompFrame.prototype.send = oldSend;
     callback();
   },
 
@@ -107,7 +106,7 @@ module.exports = testCase({
     var testId = '1234';
     var destination = '/queue/someQueue';
     
-    test.expect(2);
+    test.expect(3);
 
     //mock that we received a CONNECTED from the stomp server in our send hook
     sendHook = function(stompFrame) {
@@ -120,13 +119,15 @@ module.exports = testCase({
       sendHook = function(stompFrame) {
         test.equal(stompFrame.command, 'SUBSCRIBE');
         test.equal(stompFrame.headers.destination, destination);
+        test.equal(stompFrame.headers.id, 'blah');
         test.done();
       };
 
       self.stompClient.subscribe(destination, function(){
         // this callback never gets called unless the client recieves some data down the subscription
         // the point of this test is to ensure the SUBSCRIBE frame is correctly structured
-      });
+        // note the use of additional id header (optional in spec) below :)
+      }, { id: 'blah' });
     });
 
     this.stompClient.connect(function() {});
@@ -140,7 +141,7 @@ module.exports = testCase({
     var messageId = 1;
     var messageToBeSent = 'oh herrow!';
     
-    test.expect(3);
+    test.expect(5);
 
     //mock that we received a CONNECTED from the stomp server in our send hook
     sendHook = function(stompFrame) {
@@ -159,7 +160,14 @@ module.exports = testCase({
         test.equal(body, messageToBeSent, 'Received message matches the sent one');
         test.equal(headers['message-id'], messageId);
         test.equal(headers.destination, destination);
-        test.done();
+        test.equal(self.stompClient.subscriptions[destination].length, 1, 'ensure callback was added to subscription stack');
+
+        // Unsubscribe and ensure queue is cleared of the subscription (and related callback)
+        self.stompClient.unsubscribe(destination, {}, function () {
+          test.equal(typeof self.stompClient.subscriptions[destination], 'undefined', 'ensure queue is cleared of the subscription');
+          test.done();
+        });
+
       });
         
     });
@@ -168,12 +176,32 @@ module.exports = testCase({
   },
 
   'check outbound UNSUBSCRIBE frame correctly follows protocol specification': function (test) {
-    this.stompClient.connect(function() {
-      
-      // self.stomp
+    var self = this;
+    var testId = '1234';
+    var destination = '/queue/someQueue';
+    
+    test.expect(3);
 
+    //mock that we received a CONNECTED from the stomp server in our send hook
+    sendHook = function(stompFrame) {
+      self.stompClient.stream.emit('data', 'CONNECTED\nsession:' + testId + '\n\n\0');
+    };
+
+    // Once connected - unsubscribe to a fake queue
+    this.stompClient._stompFrameEmitter.on('CONNECTED', function (stompFrame) {
+      //override the sendHook so we can test the latest stompframe to be sent
+      sendHook = function(stompFrame) {
+        test.equal(stompFrame.command, 'UNSUBSCRIBE');
+        test.equal(stompFrame.headers.destination, destination);
+        test.equal(stompFrame.headers.id, 'specialid');
+        test.done();
+      };
+
+      self.stompClient.unsubscribe(destination, { id: 'specialid' }, function() {});
     });
-    test.done();
+
+    this.stompClient.connect(function(){});
+    connectionObserver.emit('connect');
   },
 
   'check outbound SEND frame correctly follows protocol specification': function (test) {
@@ -222,7 +250,6 @@ module.exports = testCase({
 
     this.stompClient.connect(function() {});
     connectionObserver.emit('connect');
-    
   }
 
 });
