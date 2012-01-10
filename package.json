@@ -17,5 +17,8 @@
   "dependencies": {},
   "devDependencies": {
     "nodeunit": "0.6.4"
+  },
+  "scripts": {
+    "test": "nodeunit test/"
   }
 }
