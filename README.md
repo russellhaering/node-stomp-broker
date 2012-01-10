@@ -3,7 +3,8 @@ Stomp Client
 
 [![Build Status](https://secure.travis-ci.org/easternbloc/node-stomp-client.png)](http://travis-ci.org/easternbloc/node-stomp-client)
 
-A node.js STOMP client. Props goes to [Russell Haering](https://github.com/russellhaering/node-stomp-broker) for doing the initial legwork.
+A node.js [STOMP](http://stomp.github.com) client. Props goes to [Russell Haering](https://github.com/russellhaering/node-stomp-broker) for doing the initial legwork.
+
 The following enhancements have been added:
 
 *   Unit tests
