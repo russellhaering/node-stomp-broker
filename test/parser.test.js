@@ -1,4 +1,4 @@
-var sys = require('sys'),
+var util = require('sys'),
     Events = require('events').EventEmitter,
     nodeunit  = require('nodeunit'),
     testCase  = require('nodeunit').testCase,
