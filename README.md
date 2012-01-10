@@ -5,11 +5,12 @@ Stomp Client
 
 A node.js STOMP client. Props goes to [Russell Haering](https://github.com/russellhaering/node-stomp-broker) for doing the initial legwork.
 The following enhancements have been added:
- - Unit tests
- - Ability to support different protocol versions (1.0 or 1.1) - more work needed
- - Inbound frame validation (required / regex'able header values)
- - Support for UNSUBSCRIBE frames in client
- - Ability to add custom headers to SUBSCRIBE/UNSUBSCRIBE frames
+
+*   Unit tests
+*   Ability to support different protocol versions (1.0 or 1.1) - more work needed
+*   Inbound frame validation (required / regex'able header values)
+*   Support for UNSUBSCRIBE frames in client
+*   Ability to add custom headers to SUBSCRIBE/UNSUBSCRIBE frames
 
 ## Super basic example
 	var StompClient = require('../lib/client').StompClient;
