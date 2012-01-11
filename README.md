@@ -13,11 +13,16 @@ The following enhancements have been added:
 *   Support for UNSUBSCRIBE frames in client
 *   Ability to add custom headers to SUBSCRIBE/UNSUBSCRIBE frames
 
+## Installation
+	npm install stomp-client
+
 ## Super basic example
-	var StompClient = require('../lib/client').StompClient;
+The client comes in two forms, a standard or secure client. The example below is using the standard client. To use the secure client simply change **StompClient** to **SecureStompClient**.
+
+	var Client = require('stomp-client').StompClient;
 	var destination = '/queue/someQueueName';
 
-	var client = new StompClient('127.0.0.1', 2098, 'user', 'pass', '1.0');
+	var client = new Client('127.0.0.1', 2098, 'user', 'pass', '1.0');
 
 	client.connect(function(sessionId) {
 		client.subscribe(destination, function(body, headers) {
