@@ -17,7 +17,6 @@ The following enhancements have been added:
 	npm install stomp-client
 
 ## Super basic example
-The client comes in two forms, a standard or secure client. The example below is using the standard client. To use the secure client simply change **StompClient** to **SecureStompClient**.
 
 	var Client = require('stomp-client').StompClient;
 	var destination = '/queue/someQueueName';
@@ -31,3 +30,5 @@ The client comes in two forms, a standard or secure client. The example below is
 
 		client.publish(destination, 'Oh herrow');
 	});
+
+The client comes in two forms, a standard or secure client. The example below is using the standard client. To use the secure client simply change **StompClient** to **SecureStompClient**.
