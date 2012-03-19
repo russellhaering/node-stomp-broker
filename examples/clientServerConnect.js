@@ -24,4 +24,9 @@ stompClient.connect(function() {
   setTimeout(function(){
     stompClient.publish(QUEUE, 'so wonely, so wonely and bwue!');
   }, 4000);
+  setTimeout(function(){
+    stompClient.disconnect(function() {
+      console.log('DISCONNECTED');
+    });
+  }, 5000);
 });

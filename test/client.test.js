@@ -60,7 +60,7 @@ module.exports = testCase({
   },
 
   'check outbound CONNECT frame correctly follows protocol specification': function(test) {
-
+    var self = this;
     test.expect(4);
 
     sendHook = function(stompFrame) {
@@ -78,13 +78,14 @@ module.exports = testCase({
     //start the test
     this.stompClient.connect();
     connectionObserver.emit('connect');
+
   },
 
   'check inbound CONNECTED frame parses correctly': function(test) {
     var self = this;
     var testId = '1234';
 
-    test.expect(2);
+    test.expect(2); 
 
     sendHook = function() {
       self.stompClient.stream.emit('data', 'CONNECTED\nsession:' + testId + '\n\n\0');
@@ -249,6 +250,49 @@ module.exports = testCase({
     });
 
     this.stompClient.connect(function() {});
+    connectionObserver.emit('connect');
+  },
+
+  'check disconnect method correctly sends DISCONNECT frame, disconnects TCP stream, and fires callback': function (test) {
+    var self = this;
+
+    test.expect(7);
+
+    self.stompClient.on('disconnect', function() {
+      test.ok(true, 'disconnect event fired');
+    });
+
+    //mock that we received a CONNECTED from the stomp server in our send hook
+    sendHook = function (stompFrame) {
+      self.stompClient.stream.emit('data', 'CONNECTED\nsession:blah\n\n\0');
+    };
+
+    self.stompClient.connect(function() {
+
+      // Assert next outbound STOMP frame is a DISCONNECT
+      sendHook = function (stompFrame) {
+        test.equal(stompFrame.command, 'DISCONNECT');
+        test.deepEqual(stompFrame.headers, {});
+        test.equal(stompFrame.body, '');
+      };
+
+      self.stompClient.stream.on('end', function() {
+        test.ok(true, 'tcp stream end event is fired');
+      });
+
+      // Set disconnection callback to ensure it is called appropriately
+      self.stompClient.disconnect(function () {
+        test.ok(true, 'disconnect callback executed');
+        test.done();
+      });
+
+    });
+
+    // Mock the TCP end call
+    connectionObserver.end = function() {
+      test.ok(true, 'TCP end call made');
+    };
+
     connectionObserver.emit('connect');
   }
 
