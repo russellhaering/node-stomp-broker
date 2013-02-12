@@ -6,17 +6,17 @@
   ],
   "name": "stomp-client",
   "description": "A STOMP protocol implementation in node.js",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "repository": {
     "url": "http://github.com/easternbloc/node-stomp-client"
   },
   "main" : "lib/client.js",
   "engines": {
-    "node":">= 0.4.0 < 0.7.0"
+    "node":">= 0.4 < 0.8"
   },
   "dependencies": {},
   "devDependencies": {
-    "nodeunit": "0.6.4"
+    "nodeunit": "0.7.4"
   },
   "scripts": {
     "test": "nodeunit test/"
