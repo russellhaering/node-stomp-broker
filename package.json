@@ -1,0 +1,24 @@
+{
+  "author": "Ben Marvell, Ryan Grenz",
+  "contributors": [ 
+    { "name": "Ben Marvell", "email": "ben@marvell-consulting.com" }, 
+    { "name": "Ryan Grenz", "email": "info@ryangrenz.com" }
+  ],
+  "name": "stomp-client",
+  "description": "A STOMP protocol implementation in node.js",
+  "version": "0.2.4",
+  "repository": {
+    "url": "http://github.com/easternbloc/node-stomp-client"
+  },
+  "main" : "lib/client.js",
+  "engines": {
+    "node":">= 0.4 < 0.8"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "nodeunit": "0.7.4"
+  },
+  "scripts": {
+    "test": "nodeunit test/"
+  }
+}
