@@ -413,6 +413,8 @@ module.exports = testCase({
     // Mock the TCP end call
     connectionObserver.end = function() {
       test.ok(true, 'TCP end call made');
+      connectionObserver.end = function(){};
+      process.nextTick(function() { connectionObserver.emit('end'); });
     };
 
     connectionObserver.emit('connect');
@@ -428,7 +430,7 @@ module.exports = testCase({
       expectedBody = 'Error message body',
       errorCallbackCalled = false;
 
-    test.expect(3);
+    test.expect(4);
 
     //mock that we received a CONNECTED from the stomp server in our send hook
     sendHook = function (stompFrame) {
@@ -442,11 +444,22 @@ module.exports = testCase({
 
       // Mock inbound ERROR frame
       sendHook = function (stompFrame) {
+        process.nextTick(function() {
         self.stompClient.stream.emit('data', 'ERROR\nmessage:' + expectedHeaders.message + '\ncontent-length:' + expectedHeaders['content-length']  + '\n\n' + expectedBody + '\0');
+        });
       };
 
       // Set disconnection callback to ensure it is called appropriately
       self.stompClient.disconnect(function () {
+        // XXX(sam) This test is wrong. There is nothing in client.js that even
+        // attempts to make the 'disconnect' event not happen after an ERROR is
+        // processed.  Also, since the TCP connection is ended AFTER the ERROR
+        // data comes in (obviously, the can be no data after end), it is also
+        // ended after the error callback, and the error callback is the one
+        // that calls test.done()... The end result of which is this
+        // test.ok(false) is actually being called, which should be a failure,
+        // but this unit test framework silently ignores failures after
+        // test.done(). Nice.
         test.ok(false, 'Success callback of disconnect() should not be called');
       });
 
@@ -460,6 +473,8 @@ module.exports = testCase({
     // Mock the TCP end call
     connectionObserver.end = function () {
       test.ok(true, 'TCP end call made');
+      connectionObserver.end = function(){};
+      process.nextTick(function() { connectionObserver.emit('end'); });
     };
 
     connectionObserver.emit('connect');
@@ -493,6 +508,8 @@ module.exports = testCase({
     // Mock the TCP end call
     connectionObserver.end = function () {
       test.ok(true, 'TCP end call made');
+      connectionObserver.end = function(){};
+      process.nextTick(function() { connectionObserver.emit('end'); });
     };
 
     connectionObserver.emit('connect');
