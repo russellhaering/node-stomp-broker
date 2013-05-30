@@ -356,6 +356,40 @@ module.exports = testCase({
     connectionObserver.emit('connect');
   },
 
+  'check outbound SEND header correctly follows protocol specification': function (test) {
+    var self = this;
+    var testId = '1234';
+    var destination = '/queue/someQueue';
+    var messageToBeSent = 'oh herrow!';
+    var headers = {
+      destination: 'TO BE OVERWRITTEN',
+      'content-type': 'text/plain'
+    };
+
+    test.expect(3);
+
+    //mock that we received a CONNECTED from the stomp server in our send hook
+    sendHook = function (stompFrame) {
+      self.stompClient.stream.emit('data', 'CONNECTED\nsession:' + testId + '\n\n\0');
+    };
+
+    this.stompClient.connect(function() {
+
+      sendHook = function(stompFrame) {
+        test.equal(stompFrame.command, 'SEND');
+        headers.destination = destination;
+        test.deepEqual(stompFrame.headers, headers);
+        test.equal(stompFrame.body, messageToBeSent);
+        test.done();
+      };
+
+      self.stompClient.publish(destination, messageToBeSent, headers);
+
+    });
+
+    connectionObserver.emit('connect');
+  },
+
   'check parseError event fires when malformed frame is received': function(test) {
     var self = this;
 
