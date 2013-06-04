@@ -578,7 +578,7 @@ module.exports = testCase({
       sendHook = function (stompFrame) {};
 
       self.stompClient.disconnect(function () {
-        test.equal(self.stompClient.errorCallbacks.indexOf(errorCallback), -1, 'the error callback should not be stored in the client anymore');
+        test.equal(self.stompClient.listeners('error').indexOf(errorCallback), -1, 'the error callback should not be stored in the client anymore');
         test.done();
       }, errorCallback);
     }, errorCallback);
