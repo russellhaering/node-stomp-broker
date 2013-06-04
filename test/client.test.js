@@ -305,7 +305,7 @@ module.exports = testCase({
     var testId = '1234';
     var destination = '/queue/someQueue';
     
-    test.expect(3);
+    test.expect(4);
 
     //mock that we received a CONNECTED from the stomp server in our send hook
     sendHook = function(stompFrame) {
@@ -322,7 +322,10 @@ module.exports = testCase({
         test.done();
       };
 
-      self.stompClient.unsubscribe(destination, { id: 'specialid' });
+      var before = { id: 'specialid' };
+      var after = { id: 'specialid' };
+      self.stompClient.unsubscribe(destination, after);
+      test.deepEqual(before, after, "methods shouldn't modify their arguments");
     });
 
     this.stompClient.connect(function(){});
