@@ -9,6 +9,16 @@ var connectionObserver;
 // surpress logs for the test
 util.log = function() {};
 
+// check message headers are properties of Error object
+function checkError(test, er, expectedHeaders, msg)
+{
+  var headers = {}
+  for (var key in expectedHeaders) {
+    headers[key] = er[key];
+  }
+  test.deepEqual(headers, expectedHeaders, msg);
+}
+
 // net mockage
 var net = require('net');
 var StompFrame = require('../lib/frame').StompFrame;
@@ -122,7 +132,7 @@ module.exports = testCase({
     this.stompClient.connect(function () {
       test.ok(false, 'Success callback of connect() should not be called');
     }, function (headers, body) {
-      test.deepEqual(headers, expectedHeaders, 'passed ERROR frame headers should be as expected');
+      checkError(test, headers, expectedHeaders, 'passed ERROR frame headers should be as expected');
       test.equal(body, expectedBody, 'passed ERROR frame body should be as expected');
       test.done();
     });
@@ -282,7 +292,7 @@ module.exports = testCase({
 
     }, function (headers, body) {
       errorCallbackCalled = true;
-      test.deepEqual(headers, expectedHeaders, 'passed ERROR frame headers should be as expected');
+      checkError(test, headers, expectedHeaders, 'passed ERROR frame headers should be as expected');
       test.equal(body, expectedBody, 'passed ERROR frame body should be as expected');
       test.done();
     });
@@ -363,7 +373,7 @@ module.exports = testCase({
 
     }, function (headers, body) {
       errorCallbackCalled = true;
-      test.deepEqual(headers, expectedHeaders, 'passed ERROR frame headers should be as expected');
+      checkError(test, headers, expectedHeaders, 'passed ERROR frame headers should be as expected');
       test.equal(body, expectedBody, 'passed ERROR frame body should be as expected');
       test.done();
     });
@@ -543,7 +553,7 @@ module.exports = testCase({
 
     }, function (headers, body) {
       errorCallbackCalled = true;
-      test.deepEqual(headers, expectedHeaders, 'passed ERROR frame headers should be as expected');
+      checkError(test, headers, expectedHeaders, 'passed ERROR frame headers should be as expected');
       test.equal(body, expectedBody, 'passed ERROR frame body should be as expected');
       test.done();
     });
