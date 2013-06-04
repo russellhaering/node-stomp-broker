@@ -135,7 +135,7 @@ module.exports = testCase({
     var testId = '1234';
     var destination = '/queue/someQueue';
     
-    test.expect(3);
+    test.expect(10);
 
     //mock that we received a CONNECTED from the stomp server in our send hook
     sendHook = function(stompFrame) {
@@ -144,19 +144,63 @@ module.exports = testCase({
 
     // Once connected - subscribe to a fake queue
     this.stompClient._stompFrameEmitter.on('CONNECTED', function (stompFrame) {
+      function unsubscribe() {
+        sendHook = function (){};
+        self.stompClient.unsubscribe(destination);
+      }
+      // Synchronous hooking of the .send(), vastly simplifying the tests below
+      StompFrame.prototype.send = function(stream) {
+        var self = this;
+        sendHook(self);
+      };
+
       //override the sendHook so we can test the latest stompframe to be sent
       sendHook = function(stompFrame) {
         test.equal(stompFrame.command, 'SUBSCRIBE');
         test.equal(stompFrame.headers.destination, destination);
         test.equal(stompFrame.headers.id, 'blah');
-        test.done();
       };
 
-      self.stompClient.subscribe(destination, function(){
-        // this callback never gets called unless the client recieves some data down the subscription
-        // the point of this test is to ensure the SUBSCRIBE frame is correctly structured
-        // note the use of additional id header (optional in spec) below :)
-      }, { id: 'blah' });
+      // note the use of additional id header (optional in spec) below :)
+      self.stompClient.subscribe(destination, function(){}, { id: 'blah' });
+      unsubscribe();
+
+      sendHook = function(stompFrame) {
+        test.equal(stompFrame.command, 'SUBSCRIBE');
+        test.equal(stompFrame.headers.destination, destination);
+        test.equal(stompFrame.headers.id, 'shucks');
+      };
+
+      // Note the natural argument order is used, and destination is ignored, it
+      // gets overwritten by the real destination.
+      self.stompClient.subscribe(destination, { id: 'shucks', destination: 'D' }, function(){});
+      unsubscribe();
+
+      // Subscribe without headers is valid
+      sendHook = function(stompFrame) {
+        test.equal(stompFrame.command, 'SUBSCRIBE');
+        test.equal(stompFrame.headers.destination, destination);
+      };
+
+      self.stompClient.subscribe(destination, function(){});
+      unsubscribe();
+
+      // Subscribe without a callback is invalid, with or without headers
+      try {
+        self.stompClient.subscribe(destination, {});
+      } catch(er) {
+        test.ok(true);
+      }
+      unsubscribe();
+
+      try {
+        self.stompClient.subscribe(destination, {});
+      } catch(er) {
+        test.ok(true);
+      }
+      unsubscribe();
+
+      test.done();
     });
 
     this.stompClient.connect(function() {});
