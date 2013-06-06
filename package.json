@@ -6,7 +6,7 @@
   ],
   "name": "stomp-client",
   "description": "A STOMP protocol implementation in node.js",
-  "version": "0.2.5",
+  "version": "0.3.0",
   "repository": {
     "url": "http://github.com/easternbloc/node-stomp-client"
   },
