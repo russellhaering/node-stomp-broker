@@ -33,6 +33,7 @@ module.exports = testCase({
   setUp: function(callback) {
     // Mock net object so we never try to send any real data
     connectionObserver = new Events();
+    connectionObserver.destroy = function() {}
     this.stompClient = new StompClient('127.0.0.1', 2098, 'user', 'pass', '1.0');
 
     oldCreateConnection = net.createConnection;
@@ -450,15 +451,16 @@ module.exports = testCase({
   'check parseError event fires when malformed frame is received': function(test) {
     var self = this;
 
-    test.expect(1);
+    test.expect(2);
 
     //mock that we received a CONNECTED from the stomp server in our send hook
     sendHook = function (stompFrame) {
       self.stompClient.stream.emit('data', 'CONNECTED\n\n\n\0');
     };
 
-    this.stompClient._stompFrameEmitter.on('parseError', function (err) {
-      test.equal(err.message, 'Header "session" is required, and missing from frame: {"command":"CONNECTED","headers":{},"body":"\\n"}');
+    this.stompClient.on('error', function (err) {
+      test.equal(err.message, 'Header "session" is required for CONNECTED');
+      test.equal(err.details, 'Frame: {"command":"CONNECTED","headers":{},"body":"\\n"}');
       test.done();
     });
 

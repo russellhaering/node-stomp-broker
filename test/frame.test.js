@@ -101,7 +101,8 @@ module.exports = testCase({
     // Invalid header (required)
     validation = frame.validate(frameConstruct);
     test.equal(validation.isValid, false);
-    test.equal(validation.message, 'Header "blah" is required, and missing from frame: {"command":"COMMAND","headers":{},"body":""}');
+    test.equal(validation.message, 'Header "blah" is required for COMMAND');
+    test.equal(validation.details, 'Frame: {"command":"COMMAND","headers":{},"body":""}');
     frame.setHeader('blah', 'something or other');  // Set it now so it doesn't complain in later tests
 
     // Invalid header (regex)

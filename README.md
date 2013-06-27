@@ -105,7 +105,9 @@ be considered a bug.
 
 ## Event: `'error'`
 
-Emitted on an error at either the TCP or STOMP protocol layer.
+Emitted on an error at either the TCP or STOMP protocol layer. An Error object
+will be passed. All error objects have a `.message` property, STOMP protocol
+errors may also have a `.details` property.
 
 
 ## LICENSE
