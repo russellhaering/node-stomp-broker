@@ -21,18 +21,17 @@ The following enhancements have been added:
 
 ## Super basic example
 
-	var Client = require('stomp-client').StompClient;
-	var destination = '/queue/someQueueName';
+    var Stomp = require('stomp-client');
+    var destination = '/queue/someQueueName';
+    var client = new Stomp('127.0.0.1', 61613, 'user', 'pass');
 
-	var client = new Client('127.0.0.1', 61613, 'user', 'pass', '1.0');
+    client.connect(function(sessionId) {
+        client.subscribe(destination, function(body, headers) {
+          console.log('This is the body of a message on the subscribed queue:', body);
+        });
 
-	client.connect(function(sessionId) {
-		client.subscribe(destination, function(body, headers) {
-			console.log('This is the body of a message on the subscribed queue:', body);
-		});
-
-		client.publish(destination, 'Oh herrow');
-	});
+        client.publish(destination, 'Oh herrow');
+    });
 
 The client comes in two forms, a standard or secure client. The example below is
 using the standard client. To use the secure client simply change
@@ -48,7 +47,14 @@ However, with ActiveMQ, they should begin with `"/queue/"` or with `"/topic/"`, 
 [STOMP1.0](http://stomp.github.io/stomp-specification-1.0.html#frame-SEND) for
 more detail.
 
-## require('stomp-client').StompClient(address, port, user, pass, protocolVersion)
+## Stomp = require('stomp-client')
+
+Require returns a constructor for STOMP client instances.
+
+For backwards compatibility, `require('stomp-client').StompClient` is also
+supported.
+
+## Stomp(address, port, user, pass, protocolVersion)
 
 - `address`: address to connect to, default is `"127.0.0.1"`
 - `port`: port to connect to, default is `61613`
@@ -58,11 +64,6 @@ more detail.
 
 Protocol version negotiation is not currently supported and version `"1.0"` is
 the only supported version.
-
-## require('stomp-client').SecureStompClient(address, port, user, pass, credentials)
-
-The SecureStompClient probably hasn't worked since node `0.4` dropped
-`socket.setSecure()` and introduced the `tls` module.
 
 ## stomp.connect([callback, [errorCallback]])
 
@@ -74,7 +75,7 @@ attached on the `'connect'` and `'error'` event, respectively.
 Disconnect from the STOMP server. The callback will be attached on the
 `'disconnect'` event.
 
-## stomp.subscribe = function(queue, [headers,] callback)
+## stomp.subscribe(queue, [headers,] callback)
 
 - `queue`: queue to subscribe to
 - `headers`: headers to add to the SUBSCRIBE message

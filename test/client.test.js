@@ -606,6 +606,13 @@ module.exports = testCase({
     };
 
     connectionObserver.emit('connect');
-  }
+  },
+
+  'check that the StompClient constructor is exported': function (test) {
+    var stomp = require('../lib/client');
+    test.expect(1);
+    test.equal(stomp, stomp.StompClient);
+    test.done();
+  },
 
 });
