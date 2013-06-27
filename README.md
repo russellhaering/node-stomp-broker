@@ -41,6 +41,13 @@ using the standard client. To use the secure client simply change
 
 # API
 
+## Queue Names
+
+The meaning of queue names is not defined by the STOMP spec, but by the Broker.
+However, with ActiveMQ, they should begin with `"/queue/"` or with `"/topic/"`, see
+[STOMP1.0](http://stomp.github.io/stomp-specification-1.0.html#frame-SEND) for
+more detail.
+
 ## require('stomp-client').StompClient(address, port, user, pass, protocolVersion)
 
 - `address`: address to connect to, default is `"127.0.0.1"`
