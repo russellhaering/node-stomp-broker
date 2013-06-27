@@ -43,14 +43,14 @@ using the standard client. To use the secure client simply change
 
 ## require('stomp-client').StompClient(address, port, user, pass, protocolVersion)
 
-- `address`: address to connect to, default is '127.0.0.1'
-- `port`: port to connect to, default is ` 61613`
+- `address`: address to connect to, default is `"127.0.0.1"`
+- `port`: port to connect to, default is `61613`
 - `user`: user to authenticate as, default is `""`
 - `pass`: password to authenticate with, default is `""`
-- `protocolVersion`: see below, defaults to 1.0
+- `protocolVersion`: see below, defaults to `"1.0"`
 
-Protocol version negotiation is not currently supported, version `1.0` is the
-only supported version.
+Protocol version negotiation is not currently supported and version `"1.0"` is
+the only supported version.
 
 ## require('stomp-client').SecureStompClient(address, port, user, pass, credentials)
 
