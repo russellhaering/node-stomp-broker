@@ -79,7 +79,7 @@ module.exports = testCase({
 
     frame.send(connectionObserver);
 
-    test.deepEqual(expectedStream, connectionObserver.writeBuffer, 'frame stream data is correctly output on the mocked wire');
+    test.deepEqual(expectedStream.join(''), connectionObserver.writeBuffer.join(''), 'frame stream data is correctly output on the mocked wire');
     test.done();
   },
 
