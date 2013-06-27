@@ -100,6 +100,9 @@ Emitted on successful connect to the STOMP server.
 
 Emitted on successful disconnnect from the STOMP server.
 
+Also emitted when the server arbitrarily disconnects, which should
+be considered a bug.
+
 ## Event: `'error'`
 
 Emitted on an error at either the TCP or STOMP protocol layer.
