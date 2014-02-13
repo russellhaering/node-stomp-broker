@@ -51,7 +51,7 @@ module.exports = testCase({
 
     callback();
   },
-  
+
   tearDown: function(callback) {
     delete this.stompClient;
     sendHook = function() {};
@@ -98,7 +98,7 @@ module.exports = testCase({
     var self = this;
     var testId = '1234';
 
-    test.expect(2); 
+    test.expect(2);
 
     sendHook = function() {
       self.stompClient.stream.emit('data', 'CONNECTED\nsession:' + testId + '\n\n\0');
@@ -145,7 +145,7 @@ module.exports = testCase({
     var self = this;
     var testId = '1234';
     var destination = '/queue/someQueue';
-    
+
     test.expect(10);
 
     //mock that we received a CONNECTED from the stomp server in our send hook
@@ -217,14 +217,14 @@ module.exports = testCase({
     this.stompClient.connect(function() {});
     connectionObserver.emit('connect');
   },
-  
+
   'check the SUBSCRIBE callback fires when we receive data down the destination queue': function(test) {
     var self = this;
     var testId = '1234';
     var destination = '/queue/someQueue';
     var messageId = 1;
     var messageToBeSent = 'oh herrow!';
-    
+
     test.expect(5);
 
     //mock that we received a CONNECTED from the stomp server in our send hook
@@ -252,7 +252,7 @@ module.exports = testCase({
         test.equal(typeof self.stompClient.subscriptions[destination], 'undefined', 'ensure queue is cleared of the subscription');
         test.done();
       });
-        
+
     });
 
     connectionObserver.emit('connect');
@@ -305,7 +305,7 @@ module.exports = testCase({
     var self = this;
     var testId = '1234';
     var destination = '/queue/someQueue';
-    
+
     test.expect(4);
 
     //mock that we received a CONNECTED from the stomp server in our send hook

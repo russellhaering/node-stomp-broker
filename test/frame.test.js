@@ -12,11 +12,11 @@ connectionObserver.write = function(data) {
 };
 
 module.exports = testCase({
-  
+
   setUp: function(callback) {
     callback();
   },
-  
+
   tearDown: function(callback) {
     connectionObserver.writeBuffer = [];
     callback();
