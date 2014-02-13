@@ -121,6 +121,38 @@ module.exports = testCase({
     test.equal(validation.isValid, true, 'still valid!');
 
     test.done();
+  },
+  'test stream write correctly handles single-byte UTF-8 characters': function(test) {
+      var frame = new StompFrame({
+          'command': 'SEND',
+          'body' : 'Welcome!'
+      });
+      frame.send(connectionObserver);
+
+      var writtenString = connectionObserver.writeBuffer.join('');
+      //Assume content-length header is second line
+      var contentLengthHeaderLine = writtenString.split("\n")[1];
+      var contentLengthValue = contentLengthHeaderLine.split(":")[1].trim();
+
+      test.equal(Buffer.byteLength(frame.body), contentLengthValue, "We should be truthful about how much data we plan to send to the server");
+
+      test.done();
+  },
+  'test stream write correctly handles multi-byte UTF-8 characters': function(test) {
+      var frame = new StompFrame({
+          'command': 'SEND',
+          'body' : 'Ẇḗḽḉớḿẽ☃'
+      });
+      frame.send(connectionObserver);
+
+      var writtenString = connectionObserver.writeBuffer.join('');
+      //Assume content-length header is second line
+      var contentLengthHeaderLine = writtenString.split("\n")[1];
+      var contentLengthValue = contentLengthHeaderLine.split(":")[1].trim();
+
+      test.equal(Buffer.byteLength(frame.body), contentLengthValue, "We should be truthful about how much data we plan to send to the server");
+
+      test.done();
   }
 
 });
