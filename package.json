@@ -1,5 +1,5 @@
 {
-  "author": "Ben Marvell, Ryan Grenz",
+  "author": "Ben Marvell",
   "contributors": [
     { "name": "Ben Marvell", "email": "ben@marvell-consulting.com" },
     { "name": "Ryan Grenz", "email": "info@ryangrenz.com" }
@@ -16,9 +16,11 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "nodeunit": "0.7.4"
+    "nodeunit": "0.7.4",
+    "jshint": "2.4.3"
   },
   "scripts": {
-    "test": "nodeunit test/"
+    "test": "nodeunit test",
+    "lint": "[ -z \"$LINTFILES\" ] && LINTFILES='**'; ./node_modules/jshint/bin/jshint ${LINTFILES}"
   }
 }
