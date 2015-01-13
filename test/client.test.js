@@ -222,7 +222,7 @@ module.exports = testCase({
     var self = this;
     var testId = '1234';
     var destination = '/queue/someQueue';
-    var messageId = 1;
+    var messageId = 'ID:SomeID:1';
     var messageToBeSent = 'oh herrow!';
 
     test.expect(5);
