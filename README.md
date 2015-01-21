@@ -70,6 +70,10 @@ the only supported version.
 Connect to the STOMP server. If the callbacks are provided, they will be
 attached on the `'connect'` and `'error'` event, respectively.
 
+## virtualhosts
+
+If using virtualhosts to namespace your queues, you must pass a `version` header of '1.1' otherwise it is ignored.
+
 ## stomp.disconnect(callback)
 
 Disconnect from the STOMP server. The callback will be attached on the
