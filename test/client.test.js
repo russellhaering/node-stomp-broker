@@ -33,7 +33,7 @@ module.exports = testCase({
   setUp: function(callback) {
     // Mock net object so we never try to send any real data
     connectionObserver = new Events();
-    connectionObserver.destroy = function() {}
+    connectionObserver.destroy = function() {};
     this.stompClient = new StompClient('127.0.0.1', 2098, 'user', 'pass', '1.0');
 
     oldCreateConnection = net.createConnection;
