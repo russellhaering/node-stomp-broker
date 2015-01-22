@@ -61,9 +61,15 @@ supported.
 - `user`: user to authenticate as, default is `""`
 - `pass`: password to authenticate with, default is `""`
 - `protocolVersion`: see below, defaults to `"1.0"`
+- `reconnectOpts`: see below, defaults to `{}`
 
 Protocol version negotiation is not currently supported and version `"1.0"` is
 the only supported version.
+
+ReconnectOpts should contain an integer `retries` specifying the maximum number
+of reconnection attempts, and a `delay` which specifies the reconnection delay.
+ (reconnection timings are calculated using exponential backoff. The first reconnection
+ happens immediately, the second reconnection happens at `+delay` ms, the third at `+ 2*delay` ms, etc).
 
 ## stomp.connect([callback, [errorCallback]])
 
