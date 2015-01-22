@@ -471,11 +471,7 @@ module.exports = testCase({
   'check disconnect method correctly sends DISCONNECT frame, disconnects TCP stream, and fires callback': function (test) {
     var self = this;
 
-    test.expect(7);
-
-    self.stompClient.on('disconnect', function() {
-      test.ok(true, 'disconnect event fired');
-    });
+    test.expect(5);
 
     //mock that we received a CONNECTED from the stomp server in our send hook
     sendHook = function (stompFrame) {
@@ -490,10 +486,6 @@ module.exports = testCase({
         test.deepEqual(stompFrame.headers, {});
         test.equal(stompFrame.body, '');
       };
-
-      self.stompClient.stream.on('end', function() {
-        test.ok(true, 'tcp stream end event is fired');
-      });
 
       // Set disconnection callback to ensure it is called appropriately
       self.stompClient.disconnect(function () {
