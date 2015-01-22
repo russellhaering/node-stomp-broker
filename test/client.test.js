@@ -244,7 +244,7 @@ module.exports = testCase({
         test.equal(body, messageToBeSent, 'Received message matches the sent one');
         test.equal(headers['message-id'], messageId);
         test.equal(headers.destination, destination);
-        test.equal(self.stompClient.subscriptions[destination].length, 1, 'ensure callback was added to subscription stack');
+        test.equal(self.stompClient.subscriptions[destination].listeners.length, 1, 'ensure callback was added to subscription stack');
 
         // Unsubscribe and ensure queue is cleared of the subscription (and related callback)
         self.stompClient.unsubscribe(destination, {});
