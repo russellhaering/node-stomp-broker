@@ -54,7 +54,7 @@ Require returns a constructor for STOMP client instances.
 For backwards compatibility, `require('stomp-client').StompClient` is also
 supported.
 
-## Stomp(address, port, user, pass, protocolVersion)
+## Stomp(address, [port], [user], [pass], [protocolVersion], [reconnectOpts])
 
 - `address`: address to connect to, default is `"127.0.0.1"`
 - `port`: port to connect to, default is `61613`
