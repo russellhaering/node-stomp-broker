@@ -14,6 +14,7 @@ The following enhancements have been added:
 *   Inbound frame validation (required / regex'able header values)
 *   Support for UNSUBSCRIBE frames in client
 *   Ability to add custom headers to SUBSCRIBE/UNSUBSCRIBE frames
+*   ACK and NACK support
 
 ## Installation
 
