@@ -33,7 +33,7 @@ module.exports = testCase({
   setUp: function(callback) {
     // Mock net object so we never try to send any real data
     connectionObserver = new Events();
-    connectionObserver.destroy = function() {}
+    connectionObserver.destroy = function() {};
     this.stompClient = new StompClient('127.0.0.1', 2098, 'user', 'pass', '1.0');
 
     oldCreateConnection = net.createConnection;
@@ -244,7 +244,7 @@ module.exports = testCase({
         test.equal(body, messageToBeSent, 'Received message matches the sent one');
         test.equal(headers['message-id'], messageId);
         test.equal(headers.destination, destination);
-        test.equal(self.stompClient.subscriptions[destination].length, 1, 'ensure callback was added to subscription stack');
+        test.equal(self.stompClient.subscriptions[destination].listeners.length, 1, 'ensure callback was added to subscription stack');
 
         // Unsubscribe and ensure queue is cleared of the subscription (and related callback)
         self.stompClient.unsubscribe(destination, {});
@@ -471,11 +471,7 @@ module.exports = testCase({
   'check disconnect method correctly sends DISCONNECT frame, disconnects TCP stream, and fires callback': function (test) {
     var self = this;
 
-    test.expect(7);
-
-    self.stompClient.on('disconnect', function() {
-      test.ok(true, 'disconnect event fired');
-    });
+    test.expect(5);
 
     //mock that we received a CONNECTED from the stomp server in our send hook
     sendHook = function (stompFrame) {
@@ -490,10 +486,6 @@ module.exports = testCase({
         test.deepEqual(stompFrame.headers, {});
         test.equal(stompFrame.body, '');
       };
-
-      self.stompClient.stream.on('end', function() {
-        test.ok(true, 'tcp stream end event is fired');
-      });
 
       // Set disconnection callback to ensure it is called appropriately
       self.stompClient.disconnect(function () {

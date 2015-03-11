@@ -54,16 +54,22 @@ Require returns a constructor for STOMP client instances.
 For backwards compatibility, `require('stomp-client').StompClient` is also
 supported.
 
-## Stomp(address, port, user, pass, protocolVersion)
+## Stomp(address, [port], [user], [pass], [protocolVersion], [reconnectOpts])
 
 - `address`: address to connect to, default is `"127.0.0.1"`
 - `port`: port to connect to, default is `61613`
 - `user`: user to authenticate as, default is `""`
 - `pass`: password to authenticate with, default is `""`
 - `protocolVersion`: see below, defaults to `"1.0"`
+- `reconnectOpts`: see below, defaults to `{}`
 
 Protocol version negotiation is not currently supported and version `"1.0"` is
 the only supported version.
+
+ReconnectOpts should contain an integer `retries` specifying the maximum number
+of reconnection attempts, and a `delay` which specifies the reconnection delay.
+ (reconnection timings are calculated using exponential backoff. The first reconnection
+ happens immediately, the second reconnection happens at `+delay` ms, the third at `+ 2*delay` ms, etc).
 
 ## stomp.connect([callback, [errorCallback]])
 
@@ -76,8 +82,8 @@ If using virtualhosts to namespace your queues, you must pass a `version` header
 
 ## stomp.disconnect(callback)
 
-Disconnect from the STOMP server. The callback will be attached on the
-`'disconnect'` event.
+Disconnect from the STOMP server. The callback will be executed when disconnection is complete.
+No reconnections should be attempted, nor errors thrown as a result of this call.
 
 ## stomp.subscribe(queue, [headers,] callback)
 
@@ -97,16 +103,21 @@ Disconnect from the STOMP server. The callback will be attached on the
 - `message`: message to publish, a string or buffer
 - `headers`: headers to add to the PUBLISH message
 
+## stomp.ack(messageId, subscription, [transaction]),
+## stomp.nack(messageId, subscription, [transaction])
+
+- `messageId`: the id of the message to ack/nack
+- `subscription`: the id of the subscription
+- `transaction`: optional transaction name
+
+## Property: `stomp.publishable` (boolean)
+Returns whether or not the connection is currently writable. During normal operation
+this should be true, however if the client is in the process of reconnecting,
+this will be false.
+
 ## Event: `'connect'`
 
 Emitted on successful connect to the STOMP server.
-
-## Event: `'disconnect'`
-
-Emitted on successful disconnnect from the STOMP server.
-
-Also emitted when the server arbitrarily disconnects, which should
-be considered a bug.
 
 ## Event: `'error'`
 
@@ -114,6 +125,18 @@ Emitted on an error at either the TCP or STOMP protocol layer. An Error object
 will be passed. All error objects have a `.message` property, STOMP protocol
 errors may also have a `.details` property.
 
+If the error was caused by a failure to reconnect after exceeding the number of
+reconnection attempts, the error object will have a `reconnectionFailed` property.
+
+## Event: `'reconnect'`
+
+Emitted when the client has successfully reconnected. The event arguments are
+the new `sessionId` and the reconnection attempt number.
+
+## Event: `'reconnecting'`
+
+Emitted when the client has been disconnected for whatever reason, but is going
+to attempt to reconnect.
 
 ## LICENSE
 
