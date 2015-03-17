@@ -20,6 +20,10 @@
     "jshint": "2.4.3"
   },
   "licence": "MIT",
+  "keywords": [
+    "stomp",
+    "messaging"
+  ],
   "scripts": {
     "test": "nodeunit test",
     "lint": "[ -z \"$LINTFILES\" ] && LINTFILES='**'; ./node_modules/jshint/bin/jshint ${LINTFILES}"
