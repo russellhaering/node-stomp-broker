@@ -6,7 +6,7 @@
   ],
   "name": "stomp-client",
   "description": "A STOMP protocol implementation in node.js",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "repository": {
     "url": "http://github.com/easternbloc/node-stomp-client"
   },
@@ -19,7 +19,7 @@
     "nodeunit": "0.7.4",
     "jshint": "2.4.3"
   },
-  "licence": "MIT",
+  "license": "MIT",
   "keywords": [
     "stomp",
     "messaging"
