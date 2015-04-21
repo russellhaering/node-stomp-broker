@@ -58,13 +58,14 @@ Require returns a constructor for STOMP client instances.
 For backwards compatibility, `require('stomp-client').StompClient` is also
 supported.
 
-## Stomp(address, [port], [user], [pass], [protocolVersion], [reconnectOpts])
+## Stomp(address, [port], [user], [pass], [protocolVersion], [vhost], [reconnectOpts])
 
 - `address`: address to connect to, default is `"127.0.0.1"`
 - `port`: port to connect to, default is `61613`
 - `user`: user to authenticate as, default is `""`
 - `pass`: password to authenticate with, default is `""`
 - `protocolVersion`: see below, defaults to `"1.0"`
+- `vhost`: see below, defaults to `null`
 - `reconnectOpts`: see below, defaults to `{}`
 
 Protocol version negotiation is not currently supported and version `"1.0"` is
