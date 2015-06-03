@@ -72,6 +72,83 @@ module.exports = testCase({
     test.done();
   },
 
+  'check StompClient construction from paremeters': function(test) {
+    var stompClient = new StompClient(
+      'test.host.net',1234,'uname','pw', '1.1', 'q1.host.net', 
+      { retries: 10, delay: 1000 });
+
+    test.equal(stompClient.user, 'uname');
+    test.equal(stompClient.pass, 'pw');
+    test.equal(stompClient.address, 'test.host.net');
+    test.equal(stompClient.port, 1234);
+    test.equal(stompClient.version, '1.1');
+    test.equal(stompClient.vhost, 'q1.host.net');
+    test.equal(stompClient.reconnectOpts.retries, 10);
+    test.equal(stompClient.reconnectOpts.delay, 1000);
+
+    test.done();
+  },
+
+  'check StompClient construction from options': function(test) {
+    var stompClient = new StompClient( {
+      address: 'test.host.net',
+      port: 1234,
+      user: 'uname',
+      pass: 'pw', 
+      protocolVersion: '1.1', 
+      vhost: 'q1.host.net', 
+      reconnectOpts: { retries: 10, delay: 1000 }});
+
+    test.equal(stompClient.user, 'uname');
+    test.equal(stompClient.pass, 'pw');
+    test.equal(stompClient.address, 'test.host.net');
+    test.equal(stompClient.port, 1234);
+    test.equal(stompClient.version, '1.1');
+    test.equal(stompClient.vhost, 'q1.host.net');
+    test.equal(stompClient.reconnectOpts.retries, 10);
+    test.equal(stompClient.reconnectOpts.delay, 1000);
+
+    test.done();
+  },
+
+  'check StompClient TLS construction': function(test) {
+
+    var stompClient = new StompClient(
+      'test.host.net',1234,'uname','pw', null, null, null, true);
+    test.deepEqual(stompClient.tls, {}, 'TLS not set by parameter');
+
+    var stompClient = new StompClient(
+      'test.host.net',1234,'uname','pw', null, null, null, false);
+    test.ok(!stompClient.tls, 'TLS incorrectly set by parameter');
+
+    var stompClient = new StompClient({ 
+      host: 'secure.host.net',  
+      tls: true,
+      cert: 'dummy'
+      });
+    test.equal(stompClient.address, 'secure.host.net');
+    test.deepEqual(stompClient.tls.cert, 'dummy', 'TLS not set by option');
+
+    var stompClient = new StompClient({ 
+      host: 'secure.host.net',  
+      tls: false,
+      cert: 'dummy'
+      });
+    test.equal(stompClient.address, 'secure.host.net');
+    test.ok(!stompClient.tls, 'TLS incorrectly set by option');
+
+    var stompClient = new StompClient({ 
+      host: 'secure.host.net',  
+      tls: {
+        cert: 'dummy'
+      }});
+    test.equal(stompClient.address, 'secure.host.net');
+    test.deepEqual(stompClient.tls.cert, 'dummy', 
+      'TLS not set by nested option');
+
+    test.done();
+  },
+
   'check outbound CONNECT frame correctly follows protocol specification': function(test) {
     var self = this;
     test.expect(4);
