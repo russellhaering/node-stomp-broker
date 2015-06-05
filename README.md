@@ -58,7 +58,7 @@ Require returns a constructor for STOMP client instances.
 For backwards compatibility, `require('stomp-client').StompClient` is also
 supported.
 
-## Stomp(address, [port], [user], [pass], [protocolVersion], [vhost], [reconnectOpts])
+## Stomp(address, [port], [user], [pass], [protocolVersion], [vhost], [reconnectOpts], [tls])
 
 - `address`: address to connect to, default is `"127.0.0.1"`
 - `port`: port to connect to, default is `61613`
@@ -67,6 +67,7 @@ supported.
 - `protocolVersion`: see below, defaults to `"1.0"`
 - `vhost`: see below, defaults to `null`
 - `reconnectOpts`: see below, defaults to `{}`
+- `tls`: Establish a tls/ssl connection.  If an object is passed for this argument it will passed as options to the tls module.
 
 Protocol version negotiation is not currently supported and version `"1.0"` is
 the only supported version.
@@ -75,6 +76,10 @@ ReconnectOpts should contain an integer `retries` specifying the maximum number
 of reconnection attempts, and a `delay` which specifies the reconnection delay.
  (reconnection timings are calculated using exponential backoff. The first reconnection
  happens immediately, the second reconnection happens at `+delay` ms, the third at `+ 2*delay` ms, etc).
+
+## Stomp(options)
+
+- `options`: Properties are named the same as the positional parameters above. The property 'host' is accepted as an alias for 'address'.
 
 ## stomp.connect([callback, [errorCallback]])
 
