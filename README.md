@@ -148,6 +148,12 @@ the new `sessionId` and the reconnection attempt number.
 Emitted when the client has been disconnected for whatever reason, but is going
 to attempt to reconnect.
 
+## Event: `'message'` (body, headers)
+
+Emitted for each message received. This can be used as a simple way to receive
+messages for wildcard destination subscriptions that would otherwise not trigger
+the subscription callback.
+
 ## LICENSE
 
 [MIT](LICENSE)

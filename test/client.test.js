@@ -335,6 +335,51 @@ module.exports = testCase({
     connectionObserver.emit('connect');
   },
 
+  'check the MESSAGE callback fires when we receive a message': function(test) {
+    var self = this;
+    var testId = '1234';
+    var destination = '/queue/someQueue';
+    var messageId = 'ID:SomeID:1';
+    var messageToBeSent = 'oh herrow!';
+
+    test.expect(5);
+
+    //mock that we received a CONNECTED from the stomp server in our send hook
+    sendHook = function(stompFrame) {
+      self.stompClient.stream.emit('data', 'CONNECTED\nsession:' + testId + '\n\n\0');
+    };
+
+    this.stompClient.connect(function() {
+
+      // Mock inbound MESSAGE frame
+      sendHook = function (stompFrame) {
+        self.stompClient.stream.emit('data', 'MESSAGE\ndestination:' + destination + '\nmessage-id:' + messageId + '\n\n' + messageToBeSent + '\0');
+      };
+
+      // Subscribe to the queue, but don't do anything with the response
+      self.stompClient.subscribe(destination, function () {});
+
+      // Subscribe to the MESSAGE hook, and upon receipt of message (wired above) test that body/headers correctly propogate to callback
+      self.stompClient.on('message', function (body, headers) {
+        test.equal(body, messageToBeSent, 'Received message matches the sent one');
+        test.equal(headers['message-id'], messageId);
+        test.equal(headers.destination, destination);
+
+        // Check the subscription has also been created
+        test.equal(self.stompClient.subscriptions[destination].listeners.length, 1, 'ensure callback was added to subscription stack');
+
+        // Unsubscribe and ensure queue is cleared of the subscription (and related callback)
+        self.stompClient.unsubscribe(destination, {});
+
+        test.equal(typeof self.stompClient.subscriptions[destination], 'undefined', 'ensure queue is cleared of the subscription');
+        test.done();
+      });
+
+    });
+
+    connectionObserver.emit('connect');
+  },
+
   'check the ERROR callback fires when we receive an error frame on subscription': function (test) {
     var self = this,
       testId = '1234',
