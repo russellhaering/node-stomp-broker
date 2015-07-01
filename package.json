@@ -16,8 +16,8 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "nodeunit": "0.7.4",
-    "jshint": "2.4.3"
+    "nodeunit": "0.9.1",
+    "jshint": "2.8.0"
   },
   "license": "MIT",
   "keywords": [
