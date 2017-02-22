@@ -122,6 +122,33 @@ module.exports = testCase({
 
     test.done();
   },
+  'test content-length header is not present when suppress-content-length is provided': function(test) {
+    var frame = new StompFrame({
+        'command': 'SEND',
+        'body' : 'Content length is 20'
+    });
+    frame.send(connectionObserver);
+
+    //Check the headers for the content-length header
+    var writtenString = connectionObserver.writeBuffer.join('');
+    var containsContentLengthHeader = writtenString.split("\n").indexOf("content-length:20");
+    test.equal(containsContentLengthHeader, true, "Content length header should exist since we are not suppressing it");
+
+    var frame = new StompFrame({
+        'command': 'SEND',
+        'headers': {
+          'suppress-content-length': true
+        },
+        'body' : 'Content length is 20'
+    });
+    frame.send(connectionObserver);
+
+    //Check the headers for the content-length header
+    var writtenString = connectionObserver.writeBuffer.join('');
+    var containsContentLengthHeader = writtenString.split("\n").indexOf("content-length:20");
+
+    test.done();
+  },
   'test stream write correctly handles single-byte UTF-8 characters': function(test) {
       var frame = new StompFrame({
           'command': 'SEND',
