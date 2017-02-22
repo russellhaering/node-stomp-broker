@@ -149,7 +149,7 @@ module.exports = testCase({
     //Check the headers for the content-length header
     var writtenString = connectionObserver.writeBuffer.join('');
     var containsContentLengthHeader = (writtenString.split("\n").indexOf("content-length:20") == -1 ? false : true);
-    test.equal(containsContentLengthHeader, containsContentLengthHeader, "Content length header should not exist since we are suppressing it");
+    test.equal(containsContentLengthHeader, false, "Content length header should not exist since we are suppressing it");
     test.done();
   },
   'test stream write correctly handles single-byte UTF-8 characters': function(test) {
